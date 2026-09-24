@@ -1,0 +1,4 @@
+# 弦外：对话内联音乐卡片（宿主半注册 play_score 工具 + skill；客户端半注册 tool.call.toolview 卡片）。
+- insert:
+    - id: music-studio
+      name: 'dsh-music-studio'

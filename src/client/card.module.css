@@ -1,0 +1,119 @@
+/* 弦外卡片。
+   这个文件里只允许出现布局属性（display / flex / grid / gap / padding /
+   width / height / overflow / position / border-radius）。
+   一切视觉值必须是 --dsw-* 令牌：不写字面颜色、字号、阴影，也不写明暗主题选择器。
+   卡片长在工具行里，工具行自带底色与边框，所以本组件不再叠自己的背景和边框。 */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rollWrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+
+.roll,
+.overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  pointer-events: none;
+}
+
+.transport {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.track {
+  position: relative;
+  flex: 1 1 160px;
+  min-width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-layer-3);
+  cursor: pointer;
+}
+
+.trackFill {
+  height: 100%;
+  background: var(--dsw-alias-brand-primary);
+}
+
+.time {
+  color: var(--dsw-alias-label-caption);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.vol {
+  flex: 0 0 96px;
+  width: 96px;
+}
+
+.exports {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.warn {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.warnRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.note {
+  color: var(--dsw-alias-label-secondary);
+}

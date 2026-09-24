@@ -1,0 +1,75 @@
+{
+  "name": "dsh-music-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Music composition for DeepSeek Harness: the model writes a score against a bundled composing skill, and a play_score tool renders it as an inline card with a piano roll, Web Audio playback and WAV/JSON export.",
+  "license": "BSD-3-Clause",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "SKILL.md",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "music",
+    "web-audio",
+    "score"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jypjypjypjyp/dsh-music-studio.git"
+  },
+  "homepage": "https://github.com/jypjypjypjyp/dsh-music-studio",
+  "bugs": {
+    "url": "https://github.com/jypjypjypjyp/dsh-music-studio/issues"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "scripts": {
+    "build": "node scripts/extract-engine.mjs && tsdown",
+    "watch": "tsdown --watch",
+    "test": "node scripts/extract-engine.mjs && tsdown && pnpm exec tsc --noEmit && node test/verify-engine-copy.mjs && node test/verify-score-contract.mjs && node test/verify-skill-timbres.mjs && node test/verify-card-surface.mjs && node test/verify-theme-color.mjs && node test/verify-host-load.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/dsh-client-ui-chat": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-tool": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-llm": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-skill": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-util-values": "0.1.5-rc.2",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.1",
+    "lightningcss": "^1.33.0",
+    "react": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
