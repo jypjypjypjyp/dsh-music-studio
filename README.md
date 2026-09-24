@@ -25,7 +25,7 @@ dsh web
 ```bash
 pnpm install
 pnpm build        # = （有引擎真源就抽取）+ tsdown（宿主半 ESM + 客户端半 CJS 工厂）
-pnpm test         # = 构建 + 类型检查 + 6 条判据
+pnpm test         # = 构建 + 类型检查 + 7 条判据
 ```
 
 ## 引擎从哪来
@@ -72,4 +72,5 @@ pnpm test         # = 构建 + 类型检查 + 6 条判据
 | 5 | `test/verify-card-surface.mjs` | 只用本机存在的组件；无跨插件值导入；无字面视觉值 |
 | 6 | `test/verify-theme-color.mjs` | 明暗判定的颜色解析（DSH 令牌是 8 位带 alpha 的十六进制，只认 3/6 位会永远走兜底） |
 | 7 | `test/verify-host-load.mjs` | 宿主半冷加载：`apply` 不抛、注册物形状正确、presenter 是纯函数 |
-| 8 | `pnpm exec tsc --noEmit` | 对着真实的 DSH 类型校验（工具契约、槽位、组件 props） |
+| 8 | `test/verify-groove.mjs` | 律动真的生效：乐谱写 `swing8_2`，半拍上的音必须被挪；名字写错必须明说不许静默忽略 |
+| 9 | `pnpm exec tsc --noEmit` | 对着真实的 DSH 类型校验（工具契约、槽位、组件 props） |
