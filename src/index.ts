@@ -17,7 +17,7 @@ import { basename, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createPlayScoreTool } from './tool.js'
 
-export const name = 'dsh-music-studio'
+export const name = '@jypjypjypjyp/dsh-music-studio'
 export const inject = ['systemPrompt']
 
 const SKILL_NAME = 'music-studio'
@@ -42,14 +42,14 @@ function bundledSkillProvider(): SkillProvider {
     description: SKILL_DESCRIPTION,
     invocation: { modelInvocable: true, userInvocable: true } as const,
     source: 'bundled' as const,
-    provider: 'dsh-music-studio',
+    provider: '@jypjypjypjyp/dsh-music-studio',
     path,
     resourceBase: { kind: 'directory' as const, path: dirname(path) },
     rank: 600,
     locator: path,
   }
   return {
-    name: 'dsh-music-studio',
+    name: '@jypjypjypjyp/dsh-music-studio',
     list: () => Promise.resolve([meta]),
     get: () => Promise.resolve({ ...meta, content: raw.slice(end + 5) }),
   }

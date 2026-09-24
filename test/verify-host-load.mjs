@@ -16,7 +16,7 @@ const check = (n, c, d) => {
     : (fail++, console.log('  FAIL  ' + n + (d ? '  (' + d + ')' : '')));
 };
 
-check('导出 name', name === 'dsh-music-studio', String(name));
+check('导出 name', name === '@jypjypjypjyp/dsh-music-studio', String(name));
 check('导出 inject（硬门只声明必然存在的服务）', Array.isArray(inject) && inject.includes('systemPrompt'), JSON.stringify(inject));
 
 /* ── 桩 ctx：记录所有注册动作 ────────────────────────────────────────── */

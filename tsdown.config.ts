@@ -13,7 +13,7 @@ import { basename, dirname, relative, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { transform } from 'lightningcss'
 
-const ID = 'dsh-music-studio'
+const ID = '@jypjypjypjyp/dsh-music-studio'
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url))
 
 /**

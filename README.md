@@ -1,4 +1,4 @@
-# dsh-music-studio
+# @jypjypjypjyp/dsh-music-studio
 
 在对话里作曲：**模型按内置作曲规范写出乐谱 JSON → `play_score` 工具校验后交给对话里的内联卡片播放与导出**。
 
@@ -10,7 +10,7 @@
 
 ```bash
 dsh plugin --profile web add github:jypjypjypjyp/dsh-music-studio
-dsh plugin --profile web remove dsh-music-studio     # 卸载
+dsh plugin --profile web remove @jypjypjypjyp/dsh-music-studio   # 卸载
 
 # 装完必须重启服务：插件行是启动时装配进 cordis 树的
 dsh web

@@ -1,5 +1,5 @@
 {
-  "name": "dsh-music-studio",
+  "name": "@jypjypjypjyp/dsh-music-studio",
   "version": "0.1.0",
   "private": true,
   "description": "Music composition for DeepSeek Harness: the model writes a score against a bundled composing skill, and a play_score tool renders it as an inline card with a piano roll, Web Audio playback and WAV/JSON export.",
