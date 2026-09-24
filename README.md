@@ -18,6 +18,13 @@ dsh web
 
 本地开发则把上面的 `github:...` 换成插件包路径（`dsh plugin --profile web add ./`，必须在插件包根目录执行）。
 
+**更新到仓库最新提交**（实测结论）：从 GitHub 装的依赖会被钉到**具体提交**，`pnpm update <包名>`（含 `--latest`）都**挪不动它**，必须卸了重装：
+
+```bash
+dsh plugin --profile web remove @jypjypjypjyp/dsh-music-studio
+dsh plugin --profile web add github:jypjypjypjyp/dsh-music-studio
+```
+
 改客户端代码不必重启：`pnpm watch`（`tsdown --watch`）重写 `lib/client.js` 后，`@deepseek-ai/dsh-client-hmr` 会把新包热替换进运行中的页面。
 
 ## 怎么构建
