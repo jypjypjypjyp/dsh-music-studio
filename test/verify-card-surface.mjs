@@ -110,5 +110,15 @@ if (cssFile !== undefined) {
     !/@tailwind|\.tw-|@import\s+'https?:/.test(css), '已检查');
 }
 
+/* ── 5e 卡槽认领哪些工具名 ─────────────────────────────────────────────
+   长篇工作流把「整曲/样张」交给 score_export，短曲交给 play_score ——
+   两个名字必须都指向同一个卡片组件，否则长曲的卡片会退回通用工具行。 */
+const clientIndex = readFileSync(join(SRC, 'index.tsx'), 'utf8');
+check('5e 卡槽同时认领 play_score 与 score_export',
+  /CARD_TOOLS\s*=\s*\[[^\]]*'play_score'[^\]]*'score_export'[^\]]*\]/.test(clientIndex),
+  '已检查 CARD_TOOLS');
+check('5f 两个名字都用同一个卡片组件',
+  (clientIndex.match(/ctx\.slots\.register\(/g) ?? []).length === 1 && /XianwaiCard/.test(clientIndex));
+
 console.log(`\n${fail === 0 ? 'ALL PASS' : fail + ' FAILED'}`);
 process.exit(fail === 0 ? 0 : 1);

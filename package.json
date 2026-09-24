@@ -46,7 +46,7 @@
   "scripts": {
     "build": "node scripts/extract-engine.mjs && tsdown",
     "watch": "tsdown --watch",
-    "test": "node scripts/extract-engine.mjs && tsdown && pnpm exec tsc --noEmit && node test/verify-engine-copy.mjs && node test/verify-score-contract.mjs && node test/verify-skill-timbres.mjs && node test/verify-card-surface.mjs && node test/verify-theme-color.mjs && node test/verify-groove.mjs && node test/verify-host-load.mjs",
+    "test": "node scripts/extract-engine.mjs && tsdown && pnpm exec tsc --noEmit && node test/verify-engine-copy.mjs && node test/verify-score-contract.mjs && node test/verify-skill-timbres.mjs && node test/verify-card-surface.mjs && node test/verify-theme-color.mjs && node test/verify-groove.mjs && node test/verify-score-workflow.mjs && node test/verify-host-load.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

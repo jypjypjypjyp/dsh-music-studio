@@ -26,7 +26,7 @@ export const EXPORTS = [
   'timbreNames', 'timbreLabel', 'timbreTierOf',
   'normalizeScore', 'durationOf', 'beatsOf', 'meterOf', 'clamp',
   'buildBus', 'scheduleRange', 'mkGain', 'renderOffline', 'encodeWavAsync', 'HEADROOM',
-  'midiToName', 'fmtTime',
+  'midiToName', 'pitchToMidi', 'fmtTime',
 ];
 
 export function extractEngineBlock(html) {
@@ -86,6 +86,7 @@ export declare function renderOffline(score: any, opts?: any): Promise<any>;
 export declare function encodeWavAsync(buffer: any, onProgress?: (done: number, total: number) => void): Promise<Uint8Array>;
 export declare const HEADROOM: number;
 export declare function midiToName(midi: number): string;
+export declare function pitchToMidi(p: unknown): number | null;
 export declare function fmtTime(sec: number): string;
 `;
 

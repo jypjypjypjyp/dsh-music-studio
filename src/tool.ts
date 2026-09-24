@@ -10,8 +10,12 @@ import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type {
   GenericCallView, GenericResultView, ToolDefinition, ToolRunContext,
 } from '@deepseek-ai/dsh-tools'
-import { GROOVES, normalizeScore, durationOf } from './engine.js'
+import { GROOVES, METERS, normalizeScore, durationOf } from './engine.js'
 import { countEvents, fmtDur, usedTimbres, isRenderable, type Score } from './shared/score-info.js'
+import {
+  applyEdit, assemble, createDraft, exportHeadline, exportVerdict, exportable,
+  renderProgress, validateSkeleton, type Draft,
+} from './draft.js'
 
 /** 宿主半一律按专业档校验：接受音色库全集，不因档位口径丢数据。 */
 const TIER = 'pro'
@@ -123,6 +127,204 @@ export function createPlayScoreTool(): ToolDefinition {
     },
     presentResult(args: unknown): GenericResultView | undefined {
       return { card: 'generic', title: cardTitle(args) }
+    },
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   长篇工作流：score_new / score_read / score_edit / score_export
+   ══════════════════════════════════════════════════════════════════════
+
+   短曲（≤16 小节）走 play_score 一次成谱，这四条是给长曲的：曲子太长时
+   模型写在一个输出里必然越写越凑合（没骨架、没检查点、手力被摊薄），
+   改成「骨架先定死 → 一次只填某段某乐器一格 → 每格立刻体检 → 合成一张谱」。
+
+   草稿按会话隔离放在内存里：宿主重启就丢，届时工具会明说让模型重交 ——
+   这条取舍是明说的，不是没想过。
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** 会话 → 草稿。键取 `exec.agent.id`（会话 id）；取不到时退回单一槽位。 */
+const DRAFTS = new Map<string, Draft>()
+const DRAFT_FALLBACK = '(无会话)'
+
+function draftKeyOf(exec: unknown): string {
+  const id = (exec as { agent?: { id?: unknown } } | null)?.agent?.id
+  return typeof id === 'string' && id !== '' ? id : DRAFT_FALLBACK
+}
+
+const NO_DRAFT = '没有正在进行的乐谱（宿主可能重启过）。请用 score_new 重新建谱，再按格补写。'
+
+/** 进度/回执类工具的返回值：一行中文小结（模型看这个，卡片不出）。 */
+const WORKFLOW_OUTPUT = {
+  type: 'string',
+  description: '给模型看的中文回执：本格的体检、全曲进度、下一步该写哪一格。',
+}
+
+function textRender(value: JsonValue): ContentBlock[] {
+  return [{ type: 'text', text: String(value) }]
+}
+
+const SCORE_NEW_PARAMETERS: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: '中文曲名' },
+    mood: { type: 'string', description: '中文意象描述（一两个词或一句话）' },
+    meter: { type: 'string', description: `拍号，取值：${Object.keys(METERS).join(' / ')}；不写按 4/4` },
+    bpm: { type: 'number', description: '速度，40–200 的整数' },
+    bars: { type: 'number', description: '全曲小节数（上限随拍号变化，见 music-studio skill 的拍号表）' },
+    groove: { type: 'string', description: `律动档位：${Object.keys(GROOVES).join(' / ')}；不写就是直拍` },
+    key: { type: 'string', description: '调性：A–G 加可选 # 或 b，小调末尾加 m，例如 C、F#、Bbm' },
+    chords: { type: 'string', description: '和弦循环，空格分隔，例如 "C Am F G"；不写就不提示和弦' },
+    chordsEvery: { type: 'number', description: '每个和弦占几小节（1–8，默认 1）' },
+    tracks: {
+      type: 'array',
+      description: '乐器表（1–8 条）：每格内容都是写给其中某一个乐器的',
+    },
+    sections: {
+      type: 'array',
+      description: '段表：从第 1 小节起逐段相接、正好盖满全曲，每段不超过 16 小节',
+    },
+  },
+  required: ['title', 'bars', 'key', 'tracks', 'sections'],
+  additionalProperties: false,
+}
+
+const SCORE_EDIT_PARAMETERS: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    section: { type: 'number', description: '第几段（从 1 起，看 score_read 那张表）' },
+    track: { type: 'string', description: '乐器名，必须是骨架里的 name（新乐器要同时给 wave）' },
+    wave: { type: 'string', description: '仅新增乐器时给：音色名（见 skill 的音色清单）' },
+    notes: {
+      type: 'array',
+      description: '本格音符：[音高, 起始拍, 时值拍, 力度]，起始拍**相对本段第一拍**（0 = 本段第 1 小节第 1 拍）。空数组 = 这一格刻意留白',
+    },
+    percussion: {
+      type: 'array',
+      description: '本格鼓点：[鼓件, 拍位, 力度]，拍位同样相对本段。给了它就不要给 track',
+    },
+  },
+  required: ['section'],
+  additionalProperties: false,
+}
+
+const NO_PARAMETERS: Record<string, unknown> = {
+  type: 'object',
+  properties: {},
+  additionalProperties: false,
+}
+
+export function createScoreNewTool(): ToolDefinition {
+  return {
+    name: 'score_new',
+    description:
+      '给长篇乐谱（超过 16 小节）建骨架：调性、和弦循环、拍号、速度、律动、乐器表、段表。'
+      + '建好之后用 score_edit 一格一格填（第 N 段 × 某个乐器），score_read 看进度，score_export 合成交给卡片。'
+      + '骨架一旦建好，调性/音色/速度/律动就在格层面锁死了。'
+      + '短曲（≤16 小节）直接用 play_score 一次成谱，不要走这条路。',
+    parameters: SCORE_NEW_PARAMETERS,
+    output: {
+      schema: WORKFLOW_OUTPUT as never,
+      render(_args: unknown, value: JsonValue): ContentBlock[] { return textRender(value) },
+    },
+    async execute(args: unknown, exec: ToolRunContext): Promise<unknown> {
+      const { skeleton, reason } = validateSkeleton(args)
+      if (skeleton === null) return `score_new：骨架不成立 —— ${reason}。改好再交一次。`
+      const key = draftKeyOf(exec)
+      const old = DRAFTS.get(key)
+      DRAFTS.set(key, createDraft(skeleton))
+      const head = old === undefined
+        ? `已建立《${skeleton.title}》的骨架（${skeleton.bars} 小节 / ${skeleton.sections.length} 段 / ${skeleton.tracks.length} 个乐器）。`
+        : `已建立《${skeleton.title}》的骨架，并丢弃了上一份未完成的《${old.skeleton.title}》。`
+      return `${head}\n下一步：用 score_edit 逐格写内容（一次只写一格），随时可以 score_read 看进度。\n\n`
+        + renderProgress(DRAFTS.get(key) as Draft)
+    },
+  }
+}
+
+export function createScoreReadTool(): ToolDefinition {
+  return {
+    name: 'score_read',
+    description:
+      '看当前这份乐谱的进度：每一段里每个乐器填了没有、多少个音、下一步该写哪一格，以及全曲体检总账。'
+      + '上下文被压缩后、或不确定写到哪了，用它重新定位。',
+    parameters: NO_PARAMETERS,
+    output: {
+      schema: WORKFLOW_OUTPUT as never,
+      render(_args: unknown, value: JsonValue): ContentBlock[] { return textRender(value) },
+    },
+    async execute(_args: unknown, exec: ToolRunContext): Promise<unknown> {
+      const draft = DRAFTS.get(draftKeyOf(exec))
+      if (draft === undefined) return `score_read：${NO_DRAFT}`
+      return renderProgress(draft)
+    },
+  }
+}
+
+export function createScoreEditTool(): ToolDefinition {
+  return {
+    name: 'score_edit',
+    description:
+      '写或改「第 N 段的某个乐器」这一格（整格替换，不动别的格）。'
+      + '音符的起始拍**相对本段第一拍**算：0 就是本段第 1 小节第 1 拍。'
+      + '写完立刻体检：不在调内的音、被钳位/丢弃的音、以及本格是否与已写的某格逐音一致（一致会被退回重写）。',
+    parameters: SCORE_EDIT_PARAMETERS,
+    output: {
+      schema: WORKFLOW_OUTPUT as never,
+      render(_args: unknown, value: JsonValue): ContentBlock[] { return textRender(value) },
+    },
+    async execute(args: unknown, exec: ToolRunContext): Promise<unknown> {
+      const draft = DRAFTS.get(draftKeyOf(exec))
+      if (draft === undefined) return `score_edit：${NO_DRAFT}`
+      return applyEdit(draft, args).reply
+    },
+  }
+}
+
+export function createScoreExportTool(): ToolDefinition {
+  return {
+    name: 'score_export',
+    description:
+      '把已写的格合成一份完整乐谱，交给对话里的播放卡片（卷帘图 + 播放条 + 导出 WAV 与乐谱 JSON）。'
+      + '允许导出已写部分：只写齐第 1 段时导出，那张卡就是样张；写齐后再导出就是整曲。'
+      + '还没写齐会点名还差哪些格。',
+    parameters: NO_PARAMETERS,
+    output: {
+      schema: {
+        type: 'object',
+        properties: {
+          summary: { type: 'string', description: '给模型看的一行小结' },
+          score: { type: 'object', description: '合成后的完整乐谱（卡片读它，模型看不到）' },
+          warn: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['summary', 'score'],
+      } as never,
+      render(_args: unknown, value: JsonValue): ContentBlock[] {
+        return textRender(String((value as { summary?: unknown }).summary ?? ''))
+      },
+      presentationMeta(_args: unknown, value: JsonValue): JsonValue {
+        const v = value as { score?: unknown; warn?: unknown }
+        return { score: v.score, warn: Array.isArray(v.warn) ? v.warn : [] } as unknown as JsonValue
+      },
+    },
+    async execute(_args: unknown, exec: ToolRunContext): Promise<unknown> {
+      const draft = DRAFTS.get(draftKeyOf(exec))
+      if (draft === undefined) {
+        return { summary: `score_export：${NO_DRAFT}`, score: {}, warn: [] }
+      }
+      const a = assemble(draft, { trim: true })
+      if (!exportable(a)) {
+        return { summary: 'score_export：这份谱还一个音都没有，先 score_edit 写一格再来。', score: {}, warn: [] }
+      }
+      const lines = [
+        `已交给播放卡片：《${draft.skeleton.title}》 · ${exportHeadline(a, draft)}`,
+      ]
+      if (a.missing.length > 0) {
+        lines.push(`还差 ${a.missing.length} 格：${a.missing.join('、')}。`)
+        lines.push('如果这是样张，请等主人点头后再继续；否则继续 score_edit 补写剩下的格。')
+      }
+      lines.push(exportVerdict(a, draft))
+      return { summary: lines.join('\n'), score: a.score, warn: a.warn }
     },
   }
 }

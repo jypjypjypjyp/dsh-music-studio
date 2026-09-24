@@ -130,6 +130,8 @@ const hostConfig: UserConfig = {
   // 真正会被宿主加载的那份 JS（而不是靠 Node 的 TS 支持去读源码）。
   entry: {
     index: 'src/index.ts',
+    check: 'src/check.ts',
+    draft: 'src/draft.ts',
     'shared/score-info': 'src/shared/score-info.ts',
     'shared/color': 'src/shared/color.ts',
   },

@@ -60,7 +60,10 @@ check('提示词段有 name/order/text',
 check('提示词段不是一大坨（常驻体积要小）',
   sections[0] && sections[0].text.length < 800, sections[0] ? String(sections[0].text.length) + ' 字' : '无');
 
-check('注册了 1 个工具', tools.length === 1, String(tools.length));
+check('注册了 5 个工具（play_score + 长篇工作流四件）',
+  tools.length === 5
+  && ['play_score', 'score_new', 'score_read', 'score_edit', 'score_export'].every((n) => tools.some((t) => t.name === n)),
+  tools.map((t) => t.name).join(','));
 const tool = tools[0] ?? {};
 check('工具名是 play_score', tool.name === 'play_score', String(tool.name));
 check('工具有描述', typeof tool.description === 'string' && tool.description.length > 30);

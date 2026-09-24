@@ -1,6 +1,10 @@
 # @jypjypjypjyp/dsh-music-studio
 
-在对话里作曲：**模型按内置作曲规范写出乐谱 JSON → `play_score` 工具校验后交给对话里的内联卡片播放与导出**。
+在对话里作曲：**模型按内置作曲规范写乐谱，工具校验后交给对话里的内联卡片播放与导出**。
+
+短曲（≤16 小节）一次成谱：写完整乐谱 JSON → `play_score`。
+长曲（>16 小节）分格写，像改代码一样：`score_new` 建骨架（调性 / 和弦循环 / 乐器表 / 段表）→ `score_edit` 一次只写**一格**（某段 × 某乐器，拍位相对本段起算）→ `score_read` 随时看进度 → `score_export` 合成交给卡片（写齐第 1 段时导出就是样张）。
+每格写完立刻体检：不在调内的音、钳位/丢弃的音，以及与已写某格**逐音一致**（复读开头）会被直接退回重写。
 
 卡片只负责呈现与播放（卷帘图 + 播放条 + 导出），作曲是模型在对话里干的活；UI 全部由 `@deepseek-ai/dsh-client-ui-primitives` 的现成控件搭成。
 
@@ -32,7 +36,7 @@ dsh plugin --profile web add github:jypjypjypjyp/dsh-music-studio
 ```bash
 pnpm install
 pnpm build        # = （有引擎真源就抽取）+ tsdown（宿主半 ESM + 客户端半 CJS 工厂）
-pnpm test         # = 构建 + 类型检查 + 7 条判据
+pnpm test         # = 构建 + 类型检查 + 8 条判据
 ```
 
 ## 引擎从哪来
@@ -52,10 +56,12 @@ pnpm test         # = 构建 + 类型检查 + 7 条判据
 |---|---|
 | `src/engine.js` / `engine.d.ts` | 生成物：index.html 的引擎 + 导出与类型 |
 | `src/shared/score-info.ts` | 乐谱读数：`countEvents` / `fmtDur` / `usedTimbres` / `isRenderable` |
-| `src/index.ts` | 宿主半：常驻提示词段 + `play_score` 工具 + `music-studio` skill |
-| `src/tool.ts` | 工具定义：校验 / 钳位 / 把规范化乐谱投影进结果 meta |
+| `src/index.ts` | 宿主半：常驻提示词段 + 五个乐谱工具 + `music-studio` skill |
+| `src/tool.ts` | 工具定义：`play_score`（短曲一次成谱）+ `score_new` / `score_read` / `score_edit` / `score_export`（长篇工作流）；校验 / 钳位 / 把规范化乐谱投影进结果 meta |
 | `SKILL.md` | 作曲手艺：乐谱格式、32 音色、拍号、律动、音乐性、修订流程 |
-| `src/client/index.tsx` | 客户端半：注册 `tool.call.toolview`（key = `play_score`） |
+| `src/check.ts` | 长篇判据：调性解析、调外音、重复指纹、逐格钳位 |
+| `src/draft.ts` | 长篇草稿：骨架校验、进度视图、落格、合成与裁剪 |
+| `src/client/index.tsx` | 客户端半：注册 `tool.call.toolview`（key = `play_score` 与 `score_export`，同一个卡片） |
 | `src/client/Card.tsx` | 卡片：标题行 + 卷帘图 + 播放条 + 导出 |
 | `src/client/roll.ts` | 卷帘图与播放头自绘（搬自 index.html 的 `drawRoll`） |
 | `src/client/audio.ts` | 播放排程（搬自 index.html 的滚动排程，含实测常数） |

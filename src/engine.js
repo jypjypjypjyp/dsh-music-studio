@@ -2037,5 +2037,6 @@ export {
   encodeWavAsync,
   HEADROOM,
   midiToName,
+  pitchToMidi,
   fmtTime,
 };
