@@ -8,12 +8,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button,
-  IconCopyOutline16,
-  IconDownloadOutline16,
-  IconPauseOutline16,
-  IconPlayOutline16,
-  IconRefreshOutline16,
-  IconStopFill16,
   Input,
   StateDot,
   Tag,
@@ -21,6 +15,7 @@ import {
   writeClipboard,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
+import { IconCopy, IconDownload, IconLoop, IconPause, IconPlay, IconStop } from './icons.js'
 import { ScorePlayer } from './audio.js'
 import { drawPlayhead, drawRoll, readTheme, type RollGeo } from './roll.js'
 import { onThemeChange, pickTrackColors } from './theme.js'
@@ -57,7 +52,7 @@ function fname(score: Score, ext: string): string {
   return `${t}-${new Date().toISOString().slice(0, 10)}.${ext}`
 }
 
-export function XianwaiCard(props: ToolCallViewProps) {
+export function MusicStudioCard(props: ToolCallViewProps) {
   const block = (props as { block?: unknown }).block
   const meta = useMemo(() => readMeta(block), [block])
   const score = meta?.score ?? null
@@ -225,15 +220,15 @@ export function XianwaiCard(props: ToolCallViewProps) {
       <div className={css.transport}>
         <Tooltip label={playing ? '暂停' : '播放'}>
           <Button variant="toolbar" size="sm"
-            icon={playing ? <IconPauseOutline16 /> : <IconPlayOutline16 />}
+            icon={playing ? <IconPause /> : <IconPlay />}
             onClick={toggle} aria-label={playing ? '暂停' : '播放'} />
         </Tooltip>
         <Tooltip label="停止">
-          <Button variant="toolbar" size="sm" icon={<IconStopFill16 />} aria-label="停止"
+          <Button variant="toolbar" size="sm" icon={<IconStop />} aria-label="停止"
             onClick={() => { playerRef.current?.stop(); setBeat(0); setPlaying(false) }} />
         </Tooltip>
         <Tooltip label="循环播放">
-          <Button variant={loop ? 'primary' : 'toolbar'} size="sm" icon={<IconRefreshOutline16 />}
+          <Button variant={loop ? 'primary' : 'toolbar'} size="sm" icon={<IconLoop />}
             aria-label="循环播放" aria-pressed={loop}
             onClick={() => { const next = !loop; setLoop(next); playerRef.current?.setLoop(next) }} />
         </Tooltip>
@@ -262,16 +257,16 @@ export function XianwaiCard(props: ToolCallViewProps) {
       </div>
 
       <div className={css.exports}>
-        <Button variant="ghost" size="sm" icon={<IconDownloadOutline16 />}
+        <Button variant="ghost" size="sm" icon={<IconDownload />}
           disabled={busy !== null} onClick={() => { void exportWav() }}>
           {busy ?? '下载 WAV'}
         </Button>
-        <Button variant="ghost" size="sm" icon={<IconDownloadOutline16 />}
+        <Button variant="ghost" size="sm" icon={<IconDownload />}
           onClick={() => download(new Blob([JSON.stringify(score, null, 2)], { type: 'application/json' }), fname(score, 'json'))}>
           导出乐谱 JSON
         </Button>
         <Tooltip label="复制乐谱 JSON">
-          <Button variant="ghost" size="sm" icon={<IconCopyOutline16 />} aria-label="复制乐谱 JSON"
+          <Button variant="ghost" size="sm" icon={<IconCopy />} aria-label="复制乐谱 JSON"
             onClick={() => { void writeClipboard(JSON.stringify(score)) }} />
         </Tooltip>
       </div>

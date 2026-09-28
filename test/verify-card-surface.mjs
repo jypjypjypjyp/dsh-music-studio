@@ -6,12 +6,20 @@
  *    为什么需要：客户端半编译期对着 npm 上的类型写代码，运行时却拿到一份**固定的**
  *    模块表。类型里有、运行时不存在的导出会安静地变成 undefined（已实测
  *    LinkIcon、ReferenceIcon 在 0.1.7 被改名，Checkbox 等是 0.1.7 才新增的）。
+ * 5a-2 图标兼容层（client/icons.ts 的 pick 表）：每一组都要在新版名单里至少命中一个，
+ *    旧版名单里也至少命中一个。只对一边成立的话，另一边的图标会静默变 undefined、
+ *    React 渲染整张卡时抛错、卡片直接消失 —— 2026-09-28 就是这么坏掉的
+ *    （0.1.7 把 IconPlayOutline16 这类带 16 的名字全删了，改成裸名 + Regular/Medium/Artwork）。
  * 5b 值导入只来自 5 个平台模块（跨插件的 @deepseek-ai 值导入一律禁止）。
  * 5c 客户端源码与样式表里不得出现字面颜色（音轨配色表 theme.ts 是唯一豁免，
  *    那是 index.html 里用量化判据算过的一张表，不是随手挑的）。
  * 5d 样式表里只允许布局属性 —— 这条守的是「不自己写 style」这条硬要求。
+ *
+ * 名单怎么刷新：platform-module-exports.json 的 primitives = 目标版本运行时、
+ * primitivesLegacy = 仍在支持的旧版本；两者都从对应版本
+ * @deepseek-ai/dsh-client-ui-primitives 的 bundle 末尾 export {...} 语句里取。
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,6 +44,8 @@ const files = [];
 
 // 研究产物的顶层键是短名（primitives / slots / store / dockkit），不是包名
 const primitiveNames = new Set(EXPORTS['primitives'] ?? []);
+const legacyNames = new Set(EXPORTS['primitivesLegacy'] ?? []);// 0.1.5 名单：插件仍要支持的那一版，静态导入与兜底都要在它上面成立
+
 check('拿到了本机 primitives 运行时导出名单', primitiveNames.size > 100, String(primitiveNames.size));
 
 const PLATFORM = [
@@ -52,11 +62,14 @@ for (const file of files) {
   const text = readFileSync(file, 'utf8');
 
   if (file.endsWith('.ts') || file.endsWith('.tsx')) {
-    // 5a
+    // 5a：静态导入的名字必须**两版都在**。静态导入没有兜底余地，只在一版里有就等于
+    // 另一版上必然 undefined（图标那次就是这么炸的）。要分叉就得走 icons.ts 的 pick 表。
     for (const m of text.matchAll(/import\s*\{([^}]+)\}\s*from\s*'@deepseek-ai\/dsh-client-ui-primitives'/g)) {
       for (const raw of m[1].split(',')) {
         const name = raw.trim().split(/\s+as\s+/)[0].trim();
-        if (name && !primitiveNames.has(name)) unknown.push(`${short}: ${name}`);
+        if (!name) continue;
+        if (!primitiveNames.has(name)) unknown.push(`${short}: ${name}（新版名单里没有）`);
+        if (!legacyNames.has(name)) unknown.push(`${short}: ${name}（0.1.5 名单里没有）`);
       }
     }
     // 5b：值导入（import type 不算）
@@ -72,6 +85,24 @@ for (const file of files) {
 }
 
 check('用到的 primitives 导出都在本机运行时名单里', unknown.length === 0, unknown.join('; ') || '无');
+
+// 5a-2：图标兼容层。每组至少要在新版名单里命中一个，旧版名单里也命中一个。
+const iconFile = join(SRC, 'icons.ts');
+const iconProblems = [];
+let iconGroups = 0;
+if (!existsSync(iconFile)) {
+  iconProblems.push('找不到 src/client/icons.ts');
+} else {
+  for (const m of readFileSync(iconFile, 'utf8').matchAll(/pick\(([^)]*'[^)]*)\)/g)) {
+    const names = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+    iconGroups += 1;
+    if (!names.some((n) => primitiveNames.has(n))) iconProblems.push('新版名单里一个都没有：' + names.join(' / '));
+    if (!names.some((n) => legacyNames.has(n))) iconProblems.push('旧版名单里一个都没有：' + names.join(' / '));
+  }
+  if (iconGroups === 0) iconProblems.push('pick 表是空的');
+}
+check('图标兼容层在新旧两版名单里都至少命中一个', iconProblems.length === 0, iconProblems.join('; ') || `${iconGroups} 组`);
+
 check('没有跨插件的 @deepseek-ai 值导入', strayImports.length === 0, strayImports.join('; ') || '无');
 check('没有字面颜色（theme.ts 的配色表是唯一豁免）',
   literalColors.filter((s) => !s.startsWith('theme.ts')).length === 0,
@@ -118,7 +149,7 @@ check('5e 卡槽同时认领 play_score 与 score_export',
   /CARD_TOOLS\s*=\s*\[[^\]]*'play_score'[^\]]*'score_export'[^\]]*\]/.test(clientIndex),
   '已检查 CARD_TOOLS');
 check('5f 两个名字都用同一个卡片组件',
-  (clientIndex.match(/ctx\.slots\.register\(/g) ?? []).length === 1 && /XianwaiCard/.test(clientIndex));
+  (clientIndex.match(/ctx\.slots\.register\(/g) ?? []).length === 1 && /MusicStudioCard/.test(clientIndex));
 
 console.log(`\n${fail === 0 ? 'ALL PASS' : fail + ' FAILED'}`);
 process.exit(fail === 0 ? 0 : 1);

@@ -1,4 +1,4 @@
-/* 弦外卡片。
+/* Music Studio 卡片。
    这个文件里只允许出现布局属性（display / flex / grid / gap / padding /
    width / height / overflow / position / border-radius）。
    一切视觉值必须是 --dsw-* 令牌：不写字面颜色、字号、阴影，也不写明暗主题选择器。

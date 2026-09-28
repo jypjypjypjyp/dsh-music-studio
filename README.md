@@ -8,7 +8,7 @@
 
 卡片只负责呈现与播放（卷帘图 + 播放条 + 导出），作曲是模型在对话里干的活；UI 全部由 `@deepseek-ai/dsh-client-ui-primitives` 的现成控件搭成。
 
-本项目是「弦外」单文件音景工坊的 DSH 插件形态。音频引擎（2012 行纯逻辑、无 DOM 依赖）在**主仓库**构建时从那个单文件网页抽取；**本仓库带着已生成的引擎**，因此可以脱离主仓库独立构建与安装。
+本项目是**主仓库**里那份单文件音景网页（`index.html`）的 DSH 插件形态。音频引擎（2012 行纯逻辑、无 DOM 依赖）在**主仓库**构建时从那个单文件网页抽取；**本仓库带着已生成的引擎**，因此可以脱离主仓库独立构建与安装。
 
 ## 怎么装
 
@@ -74,6 +74,29 @@ pnpm test         # = 构建 + 类型检查 + 8 条判据
 - 自写 CSS 只允许布局属性；一切视觉值必须是 `--dsw-*` 令牌，**不许出现字面颜色/字号/阴影**。
 - 唯一豁免是 `theme.ts` 里那张音轨配色表：它来自 index.html，是用 CIE Lab ΔE76 算过的（两两最小 25.4 / 25.1、相对底色最低对比度 4.65:1 / 3.70:1，见 `tools/audit-palette.py`）。DSH 只有 `state-*` 那几个语义色，没有可互相区分的分类色，所以卷帘图的轨道色必须自带。
 
+## 支持的 DSH 版本
+
+**0.1.5 与 0.1.7 用同一份构建同时支持**（2026-09-28 起）。两版的差异集中在客户端 primitives 的
+**导出名**上，最容易踩的是图标：0.1.5 叫 `IconPlayOutline16`，0.1.7 把 `16` 后缀删了、
+改成 `IconPlayOutline` / `…Regular` / `…Medium` / `…Artwork`。
+**取错名字不会报错**，只会拿到 `undefined`；React 拿到 undefined 的组件类型会在渲染时抛错，
+**整张卡片当场消失**（0.1.7 上播放卡「不见了」就是这么来的）。
+
+规则只有一条：**静态导入的名字必须两版都有；只在一版存在的，只能走 `src/client/icons.ts` 的 `pick` 表**。
+`pick` 按存在性取名（新版写法优先、旧版兜底），兜底顺序在两版上都不会取空。
+
+怎么保证不退化：
+
+| 手段 | 守什么 |
+|---|---|
+| `test/verify-card-surface.mjs` 5a | 任何 primitives **静态导入**的名字必须在「新版 + 0.1.5」两份名单里都在 |
+| `test/verify-card-surface.mjs` 5a-2 | `pick` 表每一组都要在新旧两份名单里**各命中一个** |
+| `test/verify-icons-resolve.mjs` | 拿两份**真实导出名单**各造一个桩、跑真实源码：新版世界必须解析到 `…Regular`、0.1.5 世界必须解析到 `…16`、两版都没有时必须退化成空组件（**不能是 undefined**） |
+| 两份名单 | `docs/dsh-plugin-research/platform-module-exports.json`：`primitives` = 0.1.7 运行时、`primitivesLegacy` = 0.1.5；刷新方法写在 `verify-card-surface.mjs` 头注释里 |
+
+两版都做过端到端实测（真实浏览器、各自独立 `DSH_HOME` 的沙箱）：写一段曲子 → 卡片渲染出卷帘图，
+播放 / 停止 / 循环 / 进度 / 音量 / 下载 WAV / 导出乐谱 JSON 全部可用。
+
 ## 判据一览
 
 | 判据 | 脚本 | 守什么 |
@@ -82,8 +105,9 @@ pnpm test         # = 构建 + 类型检查 + 8 条判据
 | 2 | `../verify-engine.mjs` | 现有 141 项引擎验收仍全绿 |
 | 3 | `test/verify-score-contract.mjs` | 乐谱校验三分支：合法通过 / 越界钳位且明说 / 结构错退回 |
 | 4 | `test/verify-skill-timbres.mjs` | SKILL.md 的音色、拍号、律动清单与引擎一致 |
-| 5 | `test/verify-card-surface.mjs` | 只用本机存在的组件；无跨插件值导入；无字面视觉值 |
+| 5 | `test/verify-card-surface.mjs` | 只用**两版都有**的组件；无跨插件值导入；无字面视觉值；图标兼容层两版都命中 |
 | 6 | `test/verify-theme-color.mjs` | 明暗判定的颜色解析（DSH 令牌是 8 位带 alpha 的十六进制，只认 3/6 位会永远走兜底） |
 | 7 | `test/verify-host-load.mjs` | 宿主半冷加载：`apply` 不抛、注册物形状正确、presenter 是纯函数 |
 | 8 | `test/verify-groove.mjs` | 律动真的生效：乐谱写 `swing8_2`，半拍上的音必须被挪；名字写错必须明说不许静默忽略 |
-| 9 | `pnpm exec tsc --noEmit` | 对着真实的 DSH 类型校验（工具契约、槽位、组件 props） |
+| 9 | `test/verify-icons-resolve.mjs` | 图标兼容层在 0.1.5 / 0.1.7 两份真实名单上都解析得出，取不到时退化成空组件 |
+| 10 | `pnpm exec tsc --noEmit` | 对着真实的 DSH 类型校验（工具契约、槽位、组件 props） |

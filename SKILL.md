@@ -1,9 +1,9 @@
 ---
 name: music-studio
-description: 弦外作曲规范：乐谱 JSON 结构、32 种音色、拍号与律动规则；短曲（≤16 小节）交给 play_score 卡片，长曲（>16 小节）用 score_new / score_edit / score_read / score_export 一格一格写。
+description: Music Studio 作曲规范：乐谱 JSON 结构、32 种音色、拍号与律动规则；短曲（≤16 小节）交给 play_score 卡片，长曲（>16 小节）用 score_new / score_edit / score_read / score_export 一格一格写。
 ---
 
-# 弦外 · 作曲规范
+# Music Studio · 作曲规范
 
 用户想听音乐或音效时，你写出一张完整的乐谱 JSON，用 `play_score({ score: {...} })` 交给对话里的卡片。卡片负责画卷帘图、播放、导出；**作曲是你的活**。
 

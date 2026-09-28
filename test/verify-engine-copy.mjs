@@ -12,10 +12,10 @@ import { extractEngineBlock, buildModule, sourceAvailable } from '../scripts/ext
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 // 独立发布版没有引擎真源：这条判据在这里无法执行，如实说出来，别假装通过。
-// 在主仓库（弦外）里它照常硬校验，那才是这条判据真正该发挥作用的地方。
+// 在主仓库里它照常硬校验，那才是这条判据真正该发挥作用的地方。
 if (!sourceAvailable()) {
   console.log('  SKIP  找不到引擎真源 index.html —— 本仓库是插件的独立发布版。');
-  console.log('        这条判据在弦外主仓库里执行（那里两个文件都在），此处无法校验。');
+  console.log('        这条判据在主仓库里执行（那里两个文件都在），此处无法校验。');
   console.log('        已发布的 src/engine.js 与主仓库引擎逐字节一致，由主仓库的构建守着。');
   process.exit(0);
 }

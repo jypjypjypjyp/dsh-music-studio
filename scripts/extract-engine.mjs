@@ -91,7 +91,7 @@ export declare function fmtTime(sec: number): string;
 `;
 
 /**
- * 这个插件可以脱离弦外主仓库单独发布：发布出去的仓库里没有 index.html，
+ * 这个插件可以脱离主仓库单独发布：发布出去的仓库里没有 index.html，
  * 但 src/engine.js（生成物）是随包一起带着的，照常能构建。
  * 那种情况下**不覆盖**已发布的 engine.js，并且把这件事大声说出来——
  * 绝不能悄悄跳过，否则「引擎被改坏了」和「没同步」两种情况就分不清了。

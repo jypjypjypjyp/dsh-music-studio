@@ -1,5 +1,5 @@
 /**
- * 弦外 · 客户端半：把乐谱类工具的调用结果渲染成对话里的卡片。
+ * Music Studio · 客户端半：把乐谱类工具的调用结果渲染成对话里的卡片。
  *
  * 为什么用 `tool.call.toolview`：这是 DSH 为「某个工具的调用结果长什么样」预留的
  * 官方座位，按工具的线上名字（wire tool name）分发；没被认领的名字自动退回通用
@@ -18,7 +18,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-tool/client'
-import { XianwaiCard } from './Card.js'
+import { MusicStudioCard } from './Card.js'
 
 export const inject = ['slots']
 
@@ -29,7 +29,7 @@ export function apply(ctx: Context): () => void {
   console.info('[music-studio] client active')
   const disposers = CARD_TOOLS.map((key) => ctx.slots.inject('tool.call.toolview', () => ctx.slots.register(
     { name: 'tool.call.toolview', key },
-    XianwaiCard,
+    MusicStudioCard,
   )))
   return () => { for (const dispose of disposers) dispose() }
 }

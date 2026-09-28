@@ -1,5 +1,5 @@
 /**
- * 弦外 · 宿主半。
+ * Music Studio · 宿主半。
  *
  * 常驻提示词段刻意极短：只讲「能力存在」和「完整规范在 skill 里」。
  * 体积留给 skill，免得每次会话都背一大段乐理。
@@ -24,10 +24,10 @@ export const name = '@jypjypjypjyp/dsh-music-studio'
 export const inject = ['systemPrompt']
 
 const SKILL_NAME = 'music-studio'
-const SKILL_DESCRIPTION = '弦外作曲规范：乐谱 JSON 结构、32 种音色、拍号与律动规则，短曲交给 play_score 卡片，长曲（>16 小节）用 score_new / score_edit / score_read / score_export 分格写。'
+const SKILL_DESCRIPTION = 'Music Studio 作曲规范：乐谱 JSON 结构、32 种音色、拍号与律动规则，短曲交给 play_score 卡片，长曲（>16 小节）用 score_new / score_edit / score_read / score_export 分格写。'
 
 /** 常驻提示词段：只放必须一直在场的契约。 */
-export const XIANWAI_SECTION_TEXT = `用户想听音乐、音效，或要改一支曲子时，你用乐谱工具把曲子交给对话里的播放卡片；写谱规范见 music-studio skill。
+export const MUSIC_STUDIO_SECTION_TEXT = `用户想听音乐、音效，或要改一支曲子时，你用乐谱工具把曲子交给对话里的播放卡片；写谱规范见 music-studio skill。
 
 - **短曲（≤16 小节）**：按 skill 写出完整乐谱 JSON，调 play_score({ score: {...} }) 一次成谱——参数是 JSON 对象，不是字符串。
 - **长曲（>16 小节）**：走 score_new → score_edit（一次只写一格：某段 × 某乐器）→ score_read（看进度）→ score_export（合成出卡）。长曲一次成谱必然越写越凑合，分格写并让工具逐格体检才对。
@@ -63,7 +63,7 @@ export function apply(ctx: Context): void {
   ctx.systemPrompt.section({
     name: 'music-studio:score',
     order: ctx.systemPrompt.getSectionOrder('STRUCTURED_OUTPUT'),
-    text: XIANWAI_SECTION_TEXT,
+    text: MUSIC_STUDIO_SECTION_TEXT,
   })
   ctx.inject(['tools'], (toolsCtx) => {
     toolsCtx.effect(function* () {
